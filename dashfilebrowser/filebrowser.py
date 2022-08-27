@@ -16,8 +16,8 @@ current = "."
 PWD = os.path.abspath(root)
 IFFILE = False
 FILEPATH = "none"
-
 FILEEXT = [".tex", ".txt", ".py", ".jl", ".md"]
+CURRENTDIR = PWD
 
 
 def iffileis(name): return any(
@@ -30,8 +30,9 @@ def fixpath(path):
 
 
 def listfiles(folder):
-    global PWD
+    global PWD, CURRENTDIR
     folder = folder.replace("ROOT", ".")
+    CURRENTDIR = folder
     l = [folder + "/" + i for i in os.listdir(folder)]
     l = [i for i in l if "/." not in i]
     l = [i for i in l if (iffileis(i) or os.path.isdir(i))]
@@ -45,7 +46,7 @@ def listfiles(folder):
         l = [fixpath(folder+"/.")] + l
     else:
         l = list(set([fixpath(i)
-                 for i in [folder+"/.", ".", folder+"/.."]])) + l
+                 for i in [".", folder+"/.."]])) + l
     return l
 
 
@@ -60,33 +61,49 @@ controls = [
 ]
 
 app.layout = html.Div(html.Div(
-    [html.H1("File Browser"),
-     html.Div(controls),
-     html.Div(id='status2',
-              children=''),
-     dcc.Textarea(
-        id='textarea',
-        value='Empty',
-        style={'width': '100%', 'height': 600},
-    ),
-        html.Button('Save', id='submit', n_clicks=0),
-        html.Div(id='status',
+    [html.Div([
+        html.H1("File Browser", style={"width": "300px"}),
+        html.Div([
+            html.Button('Save', id='submit', n_clicks=0),
+            html.Div(id='status',
+                 children=''), ], style={"flex-grow": "1", "text-align": "right"}),
+    ], style={"display": "flex", }),
+        html.Div(id='status2',
                  children=''),
+        html.Div([
+            html.Div(controls, style={
+                "background-color": "#EEEEEE", "width": "300px"}),
+            html.Div(dcc.Textarea(
+                id='textarea',
+                value='Empty',
+                style={'width': '100%', 'height': 700, },
+            ), style={"flex-grow": "1"}),
+        ],
+        style={"background-color": "#EEEEEE", "display": "flex"}),
     ],
-    style={"max-width": "1200px", "margin": "auto"}
-))
+
+), style={"max-width": "100%", "margin": "auto"})
 
 
-@app.callback(Output("dropdown", "options"), Input("dropdown", "value"))
+def labelfile(x):
+    if os.path.isdir(x.replace("ROOT", ".")):
+        x = os.path.basename(x)
+        return html.Div(x, style={"color": "green"})
+    else:
+        x = os.path.basename(x)
+        return x
+
+
+@ app.callback(Output("dropdown", "options"), Input("dropdown", "value"))
 def list_all_files(folder_name):
     folder_name = folder_name.replace("ROOT", ".")
     if os.path.isfile(folder_name):
         folder_name = os.path.dirname(folder_name)
     files = listfiles(folder_name)
-    return [{"label": x, "value": x} for x in files]
+    return [{"label": labelfile(x), "value": x} for x in files]
 
 
-@app.callback(Output("textarea", "value"), Input("dropdown", "value"))
+@ app.callback(Output("textarea", "value"), Input("dropdown", "value"))
 def list_all_files(file_name):
     global IFFILE, FILEPATH
     file_name = file_name.replace("ROOT", ".")
@@ -101,20 +118,21 @@ def list_all_files(file_name):
     return text
 
 
-@app.callback(Output("status2", "children"), Input("dropdown", "value"))
+@ app.callback(Output("status2", "children"), Input("dropdown", "value"))
 def list_all_files(file_name):
     global IFFILE, FILEPATH
     file_name = file_name.replace("ROOT", ".")
+    file_name = fixpath(file_name)
     if os.path.isfile(file_name):
         IFFILE = True
         FILEPATH = file_name
     else:
         IFFILE = False
-        FILEPATH = "none"
-    return "FILEPATH: "+FILEPATH
+        FILEPATH = file_name
+    return "Location: "+FILEPATH
 
 
-@app.callback(Output("status", "children"), [Input("submit", "n_clicks")], [State('textarea', 'value')])
+@ app.callback(Output("status", "children"), [Input("submit", "n_clicks")], [State('textarea', 'value')])
 def save(nclick, text):
     global IFFILE, FILEPATH
     if IFFILE and text != "Empty":
@@ -130,5 +148,3 @@ def run():
 
 if __name__ == "__main__":
     app.run_server(debug=True)
-
-
