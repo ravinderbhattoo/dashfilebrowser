@@ -1,12 +1,14 @@
 import os
 
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from genericpath import isdir, isfile
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+external_stylesheets = [
+    'https://codepen.io/chriddyp/pen/bWLwgP.css',
+    # f'https://fonts.googleapis.com/css2?family={font}:wght@400;500&display=swap',
+]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 server = app.server
@@ -45,8 +47,10 @@ def listfiles(folder):
     if os.path.abspath(folder) == PWD:
         l = [fixpath(folder+"/.")] + l
     else:
-        l = list(set([fixpath(i)
-                 for i in [".", folder+"/.."]])) + l
+        l1 = list(set([fixpath(i)
+                       for i in [".", folder+"/.."]]))
+        l1.remove('ROOT')
+        l = ['ROOT'] + l1 + l
     return l
 
 
@@ -56,7 +60,7 @@ controls = [
     dcc.Dropdown(
         id="dropdown",
         options=[{"label": x, "value": x} for x in files],
-        value=files[0],
+        value='ROOT',
     )
 ]
 
@@ -76,7 +80,8 @@ app.layout = html.Div(html.Div(
             html.Div(dcc.Textarea(
                 id='textarea',
                 value='Empty',
-                style={'width': '100%', 'height': 700, },
+                style={'width': '100%', 'height': 700,
+                       'font-family': "roboto condensed", "font-size": "18px"},
             ), style={"flex-grow": "1"}),
         ],
         style={"background-color": "#EEEEEE", "display": "flex"}),
@@ -85,9 +90,18 @@ app.layout = html.Div(html.Div(
 ), style={"max-width": "100%", "margin": "auto"})
 
 
+def get_parent(x):
+    return os.path.basename(os.path.dirname(x))
+
+
 def labelfile(x):
+    global CURRENTDIR
     if os.path.isdir(x.replace("ROOT", ".")):
         x = os.path.basename(x)
+        if x == get_parent(CURRENTDIR):
+            return html.Div("..", style={"color": "red"})
+        elif x == "ROOT":
+            return html.Div(x, style={"color": "red"})
         return html.Div(x, style={"color": "green"})
     else:
         x = os.path.basename(x)
