@@ -1,7 +1,7 @@
 import os
 
 import dash
-from dash import dcc, html
+from dash import ctx, dcc, html
 from dash.dependencies import Input, Output, State
 from genericpath import isdir, isfile
 
@@ -68,12 +68,13 @@ app.layout = html.Div(html.Div(
     [html.Div([
         html.H1("File Browser", style={"width": "300px"}),
         html.Div([
-            html.Button('Save', id='submit', n_clicks=0),
-            html.Div(id='status',
-                 children=''), ], style={"flex-grow": "1", "text-align": "right"}),
+            html.Button('Reload', id='loadfile', n_clicks=0),
+            html.Button(
+                html.Div('Save', style={"color": "red"}), id='submit', n_clicks=0),
+            html.Div(id='status', children=''),
+        ], style={"flex-grow": "1", "text-align": "right"}),
     ], style={"display": "flex", }),
-        html.Div(id='status2',
-                 children=''),
+        html.Div(id='status2', children=''),
         html.Div([
             html.Div(controls, style={
                 "background-color": "#EEEEEE", "width": "300px"}),
@@ -117,8 +118,8 @@ def list_all_files(folder_name):
     return [{"label": labelfile(x), "value": x} for x in files]
 
 
-@ app.callback(Output("textarea", "value"), Input("dropdown", "value"))
-def list_all_files(file_name):
+@ app.callback(Output("textarea", "value"), [Input("dropdown", "value"), Input("loadfile", "n_clicks")])
+def list_all_files(file_name, nclicks):
     global IFFILE, FILEPATH
     file_name = file_name.replace("ROOT", ".")
     if os.path.isfile(file_name):
@@ -129,11 +130,12 @@ def list_all_files(file_name):
         text = "Empty"
         IFFILE = False
         FILEPATH = "none"
+    print(nclicks)
     return text
 
 
 @ app.callback(Output("status2", "children"), Input("dropdown", "value"))
-def list_all_files(file_name):
+def list_all_files2(file_name):
     global IFFILE, FILEPATH
     file_name = file_name.replace("ROOT", ".")
     file_name = fixpath(file_name)
@@ -143,17 +145,21 @@ def list_all_files(file_name):
     else:
         IFFILE = False
         FILEPATH = file_name
-    return "Location: "+FILEPATH
+    return html.Div("Location: "+FILEPATH, style={"color": "black", "font-weight": "700"})
 
 
-@ app.callback(Output("status", "children"), [Input("submit", "n_clicks")], [State('textarea', 'value')])
-def save(nclick, text):
+@ app.callback(Output("status", "children"), [Input("submit", "n_clicks"), Input("loadfile", "n_clicks")], [State('textarea', 'value')])
+def save(nclick, nclick2, text):
+    button_id = ctx.triggered_id if not None else 'No clicks yet'
     global IFFILE, FILEPATH
     if IFFILE and text != "Empty":
         with open(FILEPATH, "w") as f:
             for line in text.split("\n"):
                 f.write(line+"\n")
-    return "SAVED FILEPATH: "+FILEPATH
+    if button_id == "submit":
+        return html.Div("SAVED FILEPATH: "+FILEPATH, style={"color": "red"})
+    else:
+        return html.Div("RELOAD FILEPATH: "+FILEPATH, style={"color": "green"})
 
 
 def run():
