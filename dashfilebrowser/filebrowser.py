@@ -130,7 +130,6 @@ def list_all_files(file_name, nclicks):
         text = "Empty"
         IFFILE = False
         FILEPATH = "none"
-    print(nclicks)
     return text
 
 
@@ -152,11 +151,11 @@ def list_all_files2(file_name):
 def save(nclick, nclick2, text):
     button_id = ctx.triggered_id if not None else 'No clicks yet'
     global IFFILE, FILEPATH
-    if IFFILE and text != "Empty":
-        with open(FILEPATH, "w") as f:
-            for line in text.split("\n"):
-                f.write(line+"\n")
     if button_id == "submit":
+        if IFFILE and text != "Empty":
+            with open(FILEPATH, "w") as f:
+                for line in text.split("\n"):
+                    f.write(line+"\n")
         return html.Div("SAVED FILEPATH: "+FILEPATH, style={"color": "red"})
     else:
         return html.Div("RELOAD FILEPATH: "+FILEPATH, style={"color": "green"})
